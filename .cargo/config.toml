@@ -1,0 +1,7 @@
+[build]
+target = "x86_64-pc-windows-msvc"
+rustflags = [
+    "-C", "debuginfo=0",
+    "-C", "link-arg=/DEBUG:NONE",
+    "-C", "link-arg=/EMITPOGOPHASEINFO",
+]

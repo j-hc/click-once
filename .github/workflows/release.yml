@@ -1,0 +1,33 @@
+on: push
+
+
+jobs:
+  release:
+    timeout-minutes: 10
+    name: release
+    runs-on: windows-latest
+
+    steps:
+      - id: get_repository_name
+        run: echo ::set-output name=REPOSITORY_NAME::$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $2}' | sed -e "s/:refs//")
+        shell: bash
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          target: x86_64-pc-windows-msvc
+      - uses: actions/checkout@v2
+      - name: Compile and release
+        run: cargo build --release
+      - name: Upload binary to release
+        uses: svenstaro/upload-release-action@v1-release
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: target/x86_64-pc-windows-msvc/release/${{ steps.get_repository_name.outputs.REPOSITORY_NAME }}.exe
+          asset_name: ${{ steps.get_repository_name.outputs.REPOSITORY_NAME }}.exe
+          tag: ${{ steps.date.outputs.date }}
+          overwrite: true
