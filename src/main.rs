@@ -33,9 +33,9 @@ unsafe extern "system" fn low_level_mouse_proc(
     static mut LAST_UP_R: u32 = 0;
 
     if code >= 0 {
-        let tick = GetTickCount();
         match wparam {
             WM_LBUTTONDOWNU => {
+                let tick = GetTickCount();
                 if !(tick - LAST_DOWN_L >= THRESHOLD_LM && tick - LAST_UP_L >= THRESHOLD_LM) {
                     return 1;
                 } else {
@@ -43,6 +43,7 @@ unsafe extern "system" fn low_level_mouse_proc(
                 }
             }
             WM_LBUTTONUPU => {
+                let tick = GetTickCount();
                 if !(tick - LAST_UP_L >= THRESHOLD_LM) {
                     return 1;
                 } else {
@@ -50,6 +51,7 @@ unsafe extern "system" fn low_level_mouse_proc(
                 }
             }
             WM_RBUTTONDOWNU => {
+                let tick = GetTickCount();
                 if !(tick - LAST_DOWN_R >= THRESHOLD_RM && tick - LAST_UP_R >= THRESHOLD_RM) {
                     return 1;
                 } else {
@@ -57,6 +59,7 @@ unsafe extern "system" fn low_level_mouse_proc(
                 }
             }
             WM_RBUTTONUPU => {
+                let tick = GetTickCount();
                 if !(tick - LAST_UP_R >= THRESHOLD_RM && tick - LAST_UP_R >= THRESHOLD_RM) {
                     return 1;
                 } else {
