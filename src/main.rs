@@ -2,7 +2,7 @@
 #![no_main]
 #![windows_subsystem = "windows"]
 
-use windows_sys::Win32::Foundation::{LPARAM, LRESULT, POINT, WPARAM};
+use windows_sys::Win32::Foundation::{LPARAM, LRESULT, WPARAM};
 use windows_sys::Win32::System::Environment::GetCommandLineA;
 use windows_sys::Win32::System::SystemInformation::GetTickCount;
 use windows_sys::Win32::System::Threading::ExitProcess;
@@ -72,17 +72,9 @@ extern "C" fn mainCRTStartup() -> u32 {
                 THRESHOLD = t
             }
         }
-
-        static mut DEFAULT_MSG: MSG = MSG {
-            hwnd: 0,
-            lParam: 0,
-            message: 0,
-            pt: POINT { x: 0, y: 0 },
-            time: 0,
-            wParam: 0,
-        };
         SetWindowsHookExW(WH_MOUSE_LL, Some(low_level_mouse_proc), 0, 0);
-        GetMessageW(&mut DEFAULT_MSG, 0, 0, 0);
+        let mut msg: MSG = core::mem::zeroed();
+        GetMessageW(&mut msg, 0, 0, 0);
         0
     }
 }
