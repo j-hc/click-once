@@ -1,6 +1,8 @@
 # click-once
 
-A small tiny little binary to fix malfunctioning mouse double clicks in Windows, written in Rust. Minimal executable with little to no overhead.
+A small tiny little binary to fix undesired mouse double clicks in Windows, written in Rust. Minimal executable with little to no overhead.
+
+In my machine, CPU usage does not exceed 0.15% and RAM usage is ~700kB
 
 # How it works
 
@@ -9,10 +11,10 @@ It basically hijacks a global hook into the Windows's low level mouse thread inp
 
 # Run
 ```
-./click-once.exe <delay>
+./click-once.exe <delay_left_but> <delay_right_but> 
 ```
 
-\<delay\> is in ms and can be adjusted. The default is 28ms.
+\<delay\>s are in ms and can be adjusted. The default is 28ms for \<delay_left_but\> and 0 for \<delay_right_but\> (disabled).
 
 # Build
 
