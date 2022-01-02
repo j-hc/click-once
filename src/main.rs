@@ -2,43 +2,65 @@
 #![no_main]
 #![windows_subsystem = "windows"]
 
+use core::*;
 use windows_sys::Win32::Foundation::{LPARAM, LRESULT, WPARAM};
 use windows_sys::Win32::System::Environment::GetCommandLineA;
 use windows_sys::Win32::System::SystemInformation::GetTickCount;
 use windows_sys::Win32::System::Threading::ExitProcess;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CallNextHookEx, GetMessageW, SetWindowsHookExW, MSG, WH_MOUSE_LL,
+    CallNextHookEx, GetMessageW, SetWindowsHookExW, MSG, WH_MOUSE_LL, WM_LBUTTONDOWN, WM_LBUTTONUP,
+    WM_RBUTTONDOWN, WM_RBUTTONUP,
 };
 
 extern crate static_vcruntime;
 
-static mut THRESHOLD: u32 = 28; // default threshold
+static mut THRESHOLD_LM: u32 = 28; // default threshold for left mouse button
+static mut THRESHOLD_RM: u32 = 0;
 
-const WM_LBUTTONDOWN: usize = 0x0201;
-const WM_LBUTTONUP: usize = 0x0202;
+const WM_LBUTTONDOWNU: usize = WM_LBUTTONDOWN as usize;
+const WM_LBUTTONUPU: usize = WM_LBUTTONUP as usize;
+const WM_RBUTTONDOWNU: usize = WM_RBUTTONDOWN as usize;
+const WM_RBUTTONUPU: usize = WM_RBUTTONUP as usize;
 
 unsafe extern "system" fn low_level_mouse_proc(
     code: i32,
     wparam: WPARAM,
     lparam: LPARAM,
 ) -> LRESULT {
-    static mut LAST_DOWN: u32 = 0;
-    static mut LAST_UP: u32 = 0;
+    static mut LAST_DOWN_L: u32 = 0;
+    static mut LAST_UP_L: u32 = 0;
+    static mut LAST_DOWN_R: u32 = 0;
+    static mut LAST_UP_R: u32 = 0;
+
     if code >= 0 {
         let tick = GetTickCount();
         match wparam {
-            WM_LBUTTONDOWN => {
-                if !(tick - LAST_DOWN >= THRESHOLD && tick - LAST_UP >= THRESHOLD) {
+            WM_LBUTTONDOWNU => {
+                if !(tick - LAST_DOWN_L >= THRESHOLD_LM && tick - LAST_UP_L >= THRESHOLD_LM) {
                     return 1;
                 } else {
-                    LAST_DOWN = tick;
+                    LAST_DOWN_L = tick;
                 }
             }
-            WM_LBUTTONUP => {
-                if !(tick - LAST_UP >= THRESHOLD) {
+            WM_LBUTTONUPU => {
+                if !(tick - LAST_UP_L >= THRESHOLD_LM) {
                     return 1;
                 } else {
-                    LAST_UP = tick;
+                    LAST_UP_L = tick;
+                }
+            }
+            WM_RBUTTONDOWNU => {
+                if !(tick - LAST_DOWN_R >= THRESHOLD_RM && tick - LAST_UP_R >= THRESHOLD_RM) {
+                    return 1;
+                } else {
+                    LAST_DOWN_R = tick;
+                }
+            }
+            WM_RBUTTONUPU => {
+                if !(tick - LAST_UP_R >= THRESHOLD_RM && tick - LAST_UP_R >= THRESHOLD_RM) {
+                    return 1;
+                } else {
+                    LAST_UP_R = tick;
                 }
             }
             _ => (),
@@ -50,37 +72,58 @@ unsafe extern "system" fn low_level_mouse_proc(
 #[no_mangle]
 extern "C" fn mainCRTStartup() -> u32 {
     unsafe {
-        const ARG_BUF_LEN: usize = 1024;
-        const SPACE: u8 = 32;
-
-        let mut args_p = GetCommandLineA();
-        let mut buf = [0u8; ARG_BUF_LEN];
-        let mut i = 0;
-        let mut arg_start_i = 0;
-        while *args_p != 0 {
-            buf[i] = *args_p;
-            i += 1;
-            if *args_p == SPACE {
-                arg_start_i = i
-            }
-            args_p = args_p.offset(1);
-        }
-
-        if arg_start_i != 0 {
-            let arg = core::str::from_utf8_unchecked(&buf[arg_start_i..i]);
-            if let Ok(t) = arg.parse() {
-                THRESHOLD = t
-            }
-        }
+        let args = parse_args();
+        THRESHOLD_LM = args.0;
+        THRESHOLD_RM = args.1;
         SetWindowsHookExW(WH_MOUSE_LL, Some(low_level_mouse_proc), 0, 0);
-        let mut msg: MSG = core::mem::zeroed();
+        let mut msg: MSG = mem::zeroed();
         GetMessageW(&mut msg, 0, 0, 0);
         0
     }
 }
 
+// Wine's impl: https://github.com/wine-mirror/wine/blob/7ec5f555b05152dda53b149d5994152115e2c623/dlls/shell32/shell32_main.c#L58
+unsafe fn parse_args() -> (u32, u32) {
+    const SPACE: u8 = 32;
+    const TAB: u8 = 9;
+    const QUOTE: u8 = 34;
+    const NULL: u8 = 0;
+
+    let mut pcmdline = GetCommandLineA();
+    if *pcmdline == QUOTE {
+        pcmdline = pcmdline.offset(1);
+        while *pcmdline != NULL {
+            if *pcmdline == QUOTE {
+                break;
+            }
+            pcmdline = pcmdline.offset(1);
+        }
+    } else {
+        while *pcmdline != NULL && *pcmdline != SPACE && *pcmdline != TAB {
+            pcmdline = pcmdline.offset(1);
+        }
+    }
+    pcmdline = pcmdline.offset(1);
+    while *pcmdline == SPACE || *pcmdline == TAB {
+        pcmdline = pcmdline.offset(1);
+    }
+
+    let pcmdline_s = pcmdline;
+    while *pcmdline != NULL {
+        pcmdline = pcmdline.offset(1);
+    }
+    let bargs = slice::from_raw_parts_mut(pcmdline_s, pcmdline.offset_from(pcmdline_s) as usize);
+    let mut args = str::from_utf8_unchecked_mut(bargs)
+        .split_ascii_whitespace()
+        .map(|arg_s| arg_s.parse::<u32>().unwrap_or_default());
+    (
+        args.next().unwrap_or_default(),
+        args.next().unwrap_or_default(),
+    )
+}
+
 #[panic_handler]
-fn panic(_info: &core::panic::PanicInfo) -> ! {
+fn panic(_info: &panic::PanicInfo) -> ! {
     unsafe { ExitProcess(1) }
     loop {}
 }
