@@ -17,28 +17,47 @@ static mut THRESHOLD: u32 = 28; // default threshold
 const WM_LBUTTONDOWN: usize = 0x0201;
 const WM_LBUTTONUP: usize = 0x0202;
 
+const WM_RBUTTONDOWN: usize = 0x0204;
+const WM_RBUTTONUP: usize = 0x0205;
+
 unsafe extern "system" fn low_level_mouse_proc(
     code: i32,
     wparam: WPARAM,
     lparam: LPARAM,
 ) -> LRESULT {
-    static mut LAST_DOWN: u32 = 0;
-    static mut LAST_UP: u32 = 0;
+    static mut WM_LB_LAST_DOWN: u32 = 0;
+    static mut WM_LB_LAST_UP: u32 = 0;
+    static mut WM_RB_LAST_DOWN: u32 = 0;
+    static mut WM_RB_LAST_UP: u32 = 0;
     if code >= 0 {
         let tick = GetTickCount();
         match wparam {
             WM_LBUTTONDOWN => {
-                if !(tick - LAST_DOWN >= THRESHOLD && tick - LAST_UP >= THRESHOLD) {
+                if !(tick - WM_LB_LAST_DOWN >= THRESHOLD && tick - WM_LB_LAST_UP >= THRESHOLD) {
                     return 1;
                 } else {
-                    LAST_DOWN = tick;
+                    WM_LB_LAST_DOWN = tick;
                 }
             }
             WM_LBUTTONUP => {
-                if !(tick - LAST_UP >= THRESHOLD) {
+                if !(tick - WM_LB_LAST_UP >= THRESHOLD) {
                     return 1;
                 } else {
-                    LAST_UP = tick;
+                    WM_LB_LAST_UP = tick;
+                }
+            }
+            WM_RBUTTONDOWN => {
+                if !(tick - WM_RB_LAST_DOWN >= THRESHOLD && tick - WM_RB_LAST_UP >= THRESHOLD) {
+                    return 1;
+                } else {
+                    WM_RB_LAST_DOWN = tick;
+                }
+            }
+            WM_RBUTTONUP => {
+                if !(tick - WM_RB_LAST_UP >= THRESHOLD) {
+                    return 1;
+                } else {
+                    WM_RB_LAST_UP = tick;
                 }
             }
             _ => (),
