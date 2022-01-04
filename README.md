@@ -26,6 +26,8 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 - Cargo build
 
 ```
+git clone https://github.com/scrubjay55/click-once
+cd click-once
 cargo build --release
 ```
 

@@ -60,7 +60,7 @@ unsafe extern "system" fn low_level_mouse_proc(
             }
             WM_RBUTTONUPU => {
                 let tick = GetTickCount();
-                if !(tick - LAST_UP_R >= THRESHOLD_RM && tick - LAST_UP_R >= THRESHOLD_RM) {
+                if !(tick - LAST_UP_R >= THRESHOLD_RM) {
                     return 1;
                 } else {
                     LAST_UP_R = tick;
