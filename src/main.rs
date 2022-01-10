@@ -76,8 +76,12 @@ unsafe extern "system" fn low_level_mouse_proc(
 extern "C" fn mainCRTStartup() -> u32 {
     unsafe {
         let args = parse_args();
-        THRESHOLD_LM = args.0;
-        THRESHOLD_RM = args.1;
+        if let Some(arg_lm) = args.0 {
+            THRESHOLD_LM = arg_lm;
+        }
+        if let Some(arg_rm) = args.1 {
+            THRESHOLD_RM = arg_rm;
+        }
         SetWindowsHookExW(WH_MOUSE_LL, Some(low_level_mouse_proc), 0, 0);
         let mut msg: MSG = mem::zeroed();
         GetMessageW(&mut msg, 0, 0, 0);
@@ -86,7 +90,7 @@ extern "C" fn mainCRTStartup() -> u32 {
 }
 
 // Wine's impl: https://github.com/wine-mirror/wine/blob/7ec5f555b05152dda53b149d5994152115e2c623/dlls/shell32/shell32_main.c#L58
-unsafe fn parse_args() -> (u32, u32) {
+unsafe fn parse_args() -> (Option<u32>, Option<u32>) {
     const SPACE: u8 = 32;
     const TAB: u8 = 9;
     const QUOTE: u8 = 34;
@@ -118,7 +122,7 @@ unsafe fn parse_args() -> (u32, u32) {
     let bargs = slice::from_raw_parts_mut(pcmdline_s, pcmdline.offset_from(pcmdline_s) as usize);
     let mut args = str::from_utf8_unchecked_mut(bargs)
         .split_ascii_whitespace()
-        .map(|arg_s| arg_s.parse::<u32>().unwrap_or_default());
+        .map(|arg_s| arg_s.parse::<u32>().ok());
     (
         args.next().unwrap_or_default(),
         args.next().unwrap_or_default(),
