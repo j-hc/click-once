@@ -8,19 +8,17 @@ use windows_sys::Win32::System::Environment::GetCommandLineA;
 use windows_sys::Win32::System::SystemInformation::GetTickCount;
 use windows_sys::Win32::System::Threading::ExitProcess;
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CallNextHookEx, GetMessageW, SetWindowsHookExW, MSG, WH_MOUSE_LL, WM_LBUTTONDOWN, WM_LBUTTONUP,
+    CallNextHookEx, GetMessageW, SetWindowsHookExW, WH_MOUSE_LL, WM_LBUTTONDOWN, WM_LBUTTONUP,
     WM_RBUTTONDOWN, WM_RBUTTONUP,
 };
 
-extern crate static_vcruntime;
-
-static mut THRESHOLD_LM: u32 = 28; // default threshold for left mouse button
+static mut THRESHOLD_LM: u32 = 30;
 static mut THRESHOLD_RM: u32 = 0;
 
-const WM_LBUTTONDOWNU: usize = WM_LBUTTONDOWN as usize;
-const WM_LBUTTONUPU: usize = WM_LBUTTONUP as usize;
-const WM_RBUTTONDOWNU: usize = WM_RBUTTONDOWN as usize;
-const WM_RBUTTONUPU: usize = WM_RBUTTONUP as usize;
+const WM_LBUTTONDOWNU: usize = WM_LBUTTONDOWN as _;
+const WM_LBUTTONUPU: usize = WM_LBUTTONUP as _;
+const WM_RBUTTONDOWNU: usize = WM_RBUTTONDOWN as _;
+const WM_RBUTTONUPU: usize = WM_RBUTTONUP as _;
 
 unsafe extern "system" fn low_level_mouse_proc(
     code: i32,
@@ -83,54 +81,50 @@ extern "C" fn mainCRTStartup() -> u32 {
             THRESHOLD_RM = arg_rm;
         }
         SetWindowsHookExW(WH_MOUSE_LL, Some(low_level_mouse_proc), 0, 0);
-        let mut msg: MSG = mem::zeroed();
-        GetMessageW(&mut msg, 0, 0, 0);
+        GetMessageW(&mut mem::zeroed(), 0, 0, 0);
         0
     }
 }
 
 // Wine's impl: https://github.com/wine-mirror/wine/blob/7ec5f555b05152dda53b149d5994152115e2c623/dlls/shell32/shell32_main.c#L58
 unsafe fn parse_args() -> (Option<u32>, Option<u32>) {
-    const SPACE: u8 = 32;
-    const TAB: u8 = 9;
-    const QUOTE: u8 = 34;
-    const NULL: u8 = 0;
+    const SPACE: u8 = b' ';
+    const TAB: u8 = b'\t';
+    const QUOTE: u8 = b'"';
+    const NULL: u8 = b'\0';
 
     let mut pcmdline = GetCommandLineA();
     if *pcmdline == QUOTE {
-        pcmdline = pcmdline.offset(1);
+        pcmdline = pcmdline.add(1);
         while *pcmdline != NULL {
             if *pcmdline == QUOTE {
                 break;
             }
-            pcmdline = pcmdline.offset(1);
+            pcmdline = pcmdline.add(1);
         }
     } else {
         while *pcmdline != NULL && *pcmdline != SPACE && *pcmdline != TAB {
-            pcmdline = pcmdline.offset(1);
+            pcmdline = pcmdline.add(1);
         }
     }
-    pcmdline = pcmdline.offset(1);
+    pcmdline = pcmdline.add(1);
     while *pcmdline == SPACE || *pcmdline == TAB {
-        pcmdline = pcmdline.offset(1);
+        pcmdline = pcmdline.add(1);
     }
-
     let pcmdline_s = pcmdline;
     while *pcmdline != NULL {
-        pcmdline = pcmdline.offset(1);
+        pcmdline = pcmdline.add(1);
     }
-    let bargs = slice::from_raw_parts_mut(pcmdline_s, pcmdline.offset_from(pcmdline_s) as usize);
-    let mut args = str::from_utf8_unchecked_mut(bargs)
-        .split_ascii_whitespace()
-        .map(|arg_s| arg_s.parse::<u32>().ok());
-    (
-        args.next().unwrap_or_default(),
-        args.next().unwrap_or_default(),
-    )
+
+    let mut args = slice::from_raw_parts_mut(pcmdline_s, pcmdline.offset_from(pcmdline_s) as usize)
+        .split(|p| p == &SPACE)
+        .take(2)
+        .filter_map(|v| str::from_utf8_unchecked(v).parse::<u32>().ok());
+
+    (args.next(), args.next())
 }
 
 #[panic_handler]
 fn panic(_info: &panic::PanicInfo) -> ! {
     unsafe { ExitProcess(1) }
-    loop {}
 }

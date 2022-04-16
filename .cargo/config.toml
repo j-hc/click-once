@@ -4,5 +4,4 @@ rustflags = [
     "-C", "debuginfo=0",
     "-C", "link-arg=/DEBUG:NONE",
     "-C", "link-arg=/EMITPOGOPHASEINFO",
-    "-C", "target-feature=+crt-static",
 ]

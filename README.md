@@ -14,7 +14,7 @@ It basically hijacks a global hook into the Windows's low level mouse thread inp
 ./click-once.exe <delay_left_but> <delay_right_but> 
 ```
 
-\<delay\>s are in ms and can be adjusted. The default is 28ms for \<delay_left_but\> and 0 for \<delay_right_but\> (disabled).
+`delay`s are in ms and can be adjusted. The default is 28ms for `delay_left_but` and 0 for `delay_right_but` (disabled).
 
 # Build
 
@@ -23,11 +23,10 @@ It basically hijacks a global hook into the Windows's low level mouse thread inp
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
-- Cargo build
+- Clone the repo and build with Cargo
 
 ```
 git clone https://github.com/scrubjay55/click-once
 cd click-once
 cargo build --release
 ```
-
