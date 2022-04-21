@@ -1,6 +1,7 @@
+// no need to allocate a console for a long-running program that does not output anything
+#![windows_subsystem = "windows"]
 #![no_std]
 #![no_main]
-#![windows_subsystem = "windows"]
 
 use core::*;
 use windows_sys::Win32::Foundation::{LPARAM, LRESULT, WPARAM};
@@ -67,11 +68,12 @@ unsafe extern "system" fn low_level_mouse_proc(
             _ => (),
         }
     }
+    
     CallNextHookEx(0, code, wparam, lparam)
 }
 
 #[no_mangle]
-extern "C" fn mainCRTStartup() -> u32 {
+fn _start() {
     unsafe {
         let args = parse_args();
         if let Some(arg_lm) = args.0 {
@@ -82,7 +84,6 @@ extern "C" fn mainCRTStartup() -> u32 {
         }
         SetWindowsHookExW(WH_MOUSE_LL, Some(low_level_mouse_proc), 0, 0);
         GetMessageW(&mut mem::zeroed(), 0, 0, 0);
-        0
     }
 }
 

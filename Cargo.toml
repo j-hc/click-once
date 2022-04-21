@@ -1,18 +1,21 @@
 [package]
-authors = ["scrubjay55"]
+authors = ["j-hc"]
 name = "click-once"
-version = "0.2.1"
+version = "0.2.5"
 edition = "2021"
-
 
 [dependencies.windows-sys]
 version = "0.35"
-features = ["Win32_System_SystemInformation", "Win32_UI_WindowsAndMessaging", "Win32_Foundation","Win32_System_Environment", "Win32_System_Threading"]
-
+features = [
+    "Win32_System_SystemInformation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_Foundation",
+    "Win32_System_Environment",
+    "Win32_System_Threading",
+]
 
 [profile.dev]
 panic = "abort"
-
 
 [profile.release]
 lto = true
